@@ -1,0 +1,42 @@
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# 敏感与本地配置（勿提交 Token）
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 选股/流水线产物（运行后生成）
+step1_*.csv
+step2_*.csv
+deep_value_pool_*.csv
+*_deep_value_pool_*.csv
+deep_analysis_*.xlsx
+*风险筛选报告*.xlsx
+hs300_akshare_*.csv
+multi_factor_akshare_*.csv
+single_stock_score_*.xlsx
+outputs/
+
+# 日志与临时
+*.log
+.DS_Store
+Thumbs.db
