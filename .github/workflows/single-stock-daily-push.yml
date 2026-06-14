@@ -1,24 +1,19 @@
-name: HS300 每日选股推送
+name: 单股指标每日推送
 
 on:
   schedule:
-    # 每天北京时间 00:00（UTC 16:00）；脚本内判断是否为 A 股交易日，非交易日自动跳过
-    - cron: "0 16 * * *"
+    # 每天北京时间 20:00（UTC 12:00）；与 HS300（00:00）错开避免接口限流
+    - cron: "0 12 * * *"
   workflow_dispatch:
-    inputs:
-      screen_date:
-        description: "截面日 YYYY-MM-DD（留空=北京时间当日，须为交易日）"
-        required: false
-        type: string
 
 concurrency:
-  group: hs300-daily-screen
+  group: single-stock-daily-push
   cancel-in-progress: false
 
 jobs:
-  screen-and-push:
+  score-and-push:
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    timeout-minutes: 90
 
     steps:
       - name: Checkout
@@ -34,32 +29,30 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run HS300 screen and Server酱 push
+      - name: Run scoring and Server酱 push
         env:
           SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
           AK_REQUEST_THROTTLE: "3"
           TZ: Asia/Shanghai
+          # 持仓
+          HOLDING_CODES: "600519,600031"
+          # 关注（拟入手）
+          TARGET_CODES: "603444,300628,603369,000596"
+          WATCH_CODES: "600519,600031,603444,300628,603369,000596"
         run: |
           mkdir -p outputs
-          DATE_ARG=""
-          if [ -n "${{ github.event.inputs.screen_date }}" ]; then
-            DATE_ARG="--date ${{ github.event.inputs.screen_date }}"
-          fi
-          python strategies/run_hs300_akshare.py \
-            --screen \
-            --push \
+          python daily_push_serverchan.py \
             --trading-day-only \
-            --workers 1 \
-            --output outputs/hs300_screen_today.csv \
-            $DATE_ARG
+            --output-dir outputs
 
-      - name: Upload CSV artifact
+      - name: Upload Excel artifact
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: hs300-screen-${{ github.run_id }}
-          path: outputs/hs300_screen_*.csv
+          name: single-stock-score-${{ github.run_id }}
+          path: outputs/single_stock_score_*.xlsx
           retention-days: 30
+          if-no-files-found: ignore
 
       - name: Notify failure via Server酱
         if: failure()
@@ -77,7 +70,7 @@ jobs:
           run_id = os.environ.get("GITHUB_RUN_ID", "")
           url = f"https://github.com/{repo}/actions/runs/{run_id}" if repo and run_id else ""
           send_serverchan(
-              "HS300选股 GitHub Actions 失败",
+              "单股指标 GitHub Actions 失败",
               f"工作流运行失败，请查看日志。\n\n{url}",
           )
           PY
